@@ -1,8 +1,22 @@
+const CDIA_KEY = 'Canadian direct investment abroad - total book value';
+const FDI_KEY  = 'Foreign direct investment in Canada - total book value';
+let dataLookup = null;
+
+function buildLookup() {
+    dataLookup = {};
+    rawData.forEach(d => {
+        dataLookup[`${d.parent}|${d.child}|${d.year}`] = d.value;
+    });
+}
+
 function init() {
     if (typeof rawData === 'undefined' || !rawData.length) return;
+    buildLookup();
     populateFilters();
+    populateFlowCountryFilter();
     setupEventListeners();
     updateDashboard();
+    updateFlowChart();
 }
 
 function populateFilters() {
@@ -44,7 +58,6 @@ function setupEventListeners() {
     document.getElementById('childFilter').addEventListener('change', function(e) {
         let selectedOptions = Array.from(this.selectedOptions);
         if (selectedOptions.length > 5) {
-            // Unselect oldest ones to limit to 5
             selectedOptions.slice(5).forEach(opt => opt.selected = false);
             alert("Maximum 5 selections allowed for comparison.");
         }
@@ -52,6 +65,15 @@ function setupEventListeners() {
     });
     document.getElementById('yearFilter').addEventListener('change', updateDashboard);
     document.getElementById('metricFilter').addEventListener('change', updateDashboard);
+    document.getElementById('flowCountryFilter').addEventListener('change', function() {
+        const sel = Array.from(this.selectedOptions);
+        if (sel.length > 3) {
+            sel.slice(3).forEach(opt => opt.selected = false);
+            alert('Maximum 3 selections allowed for this chart.');
+        }
+        updateFlowChart();
+    });
+    document.getElementById('netToggle').addEventListener('change', updateFlowChart);
 }
 
 let charts = {};
@@ -172,3 +194,96 @@ function updateDashboard() {
 }
 
 init();
+
+// ── Capital Flow Comparison chart ────────────────────────────────────────────
+
+function populateFlowCountryFilter() {
+    const cdiaSet = new Set(rawData.filter(d => d.parent === CDIA_KEY).map(d => d.child));
+    const fdiSet  = new Set(rawData.filter(d => d.parent === FDI_KEY).map(d => d.child));
+    const common  = [...cdiaSet].filter(c => fdiSet.has(c)).sort((a, b) => {
+        if (a === 'All countries') return -1;
+        if (b === 'All countries') return 1;
+        return a.localeCompare(b);
+    });
+    const sel = document.getElementById('flowCountryFilter');
+    sel.innerHTML = '';
+    common.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c; opt.text = c;
+        sel.appendChild(opt);
+    });
+    if (sel.options.length > 0) sel.options[0].selected = true;
+}
+
+function updateFlowChart() {
+    const flowSel = document.getElementById('flowCountryFilter');
+    let countries = Array.from(flowSel.selectedOptions).map(o => o.value);
+    if (countries.length === 0) countries = ['All countries'];
+    const isNet = document.getElementById('netToggle').checked;
+
+    document.getElementById('flowChartLabel').innerText =
+        isNet ? '(Net: FDI − CDIA)' : '(CDIA shown as negative)';
+
+    const allYears = [...new Set(rawData.map(d => d.year))].sort();
+    const COLORS   = ['#3b82f6', '#10b981', '#f59e0b'];
+    const datasets  = [];
+
+    if (isNet) {
+        countries.forEach((country, i) => {
+            const color = COLORS[i % COLORS.length];
+            const data  = allYears.map(yr => {
+                const fdi  = dataLookup[`${FDI_KEY}|${country}|${yr}`]  ?? 0;
+                const cdia = dataLookup[`${CDIA_KEY}|${country}|${yr}`] ?? 0;
+                return fdi - cdia;
+            });
+            const label = country.length > 30 ? country.slice(0, 30) + '…' : country;
+            datasets.push({
+                label: label,
+                data,
+                backgroundColor: data.map(v => (v >= 0 ? color : '#ef4444') + 'bb'),
+                borderColor:     data.map(v => v >= 0 ? color : '#ef4444'),
+                borderWidth: 1,
+                borderRadius: 3
+            });
+        });
+    } else {
+        countries.forEach((country, i) => {
+            const color = COLORS[i % COLORS.length];
+            const label = country.length > 22 ? country.slice(0, 22) + '…' : country;
+            const fdiData  = allYears.map(yr => dataLookup[`${FDI_KEY}|${country}|${yr}`]  ?? null);
+            const cdiaData = allYears.map(yr => {
+                const v = dataLookup[`${CDIA_KEY}|${country}|${yr}`];
+                return v != null ? -Math.abs(v) : null;
+            });
+            datasets.push(
+                { label: `FDI ↑ – ${label}`,  data: fdiData,  backgroundColor: color + 'cc', borderColor: color,    borderWidth: 1, borderRadius: 3 },
+                { label: `CDIA ↓ – ${label}`, data: cdiaData, backgroundColor: color + '44', borderColor: color,    borderWidth: 1, borderRadius: 3, borderDash: [4,2] }
+            );
+        });
+    }
+
+    if (charts.flow) charts.flow.destroy();
+    charts.flow = new Chart(document.getElementById('flowChart'), {
+        type: 'bar',
+        data: { labels: allYears, datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#f8fafc', font: { size: 11 }, boxWidth: 14 } },
+                tooltip: {
+                    callbacks: {
+                        label: c => `${c.dataset.label}: ${Number(c.raw).toLocaleString(undefined, { maximumFractionDigits: 0 })} M$`
+                    }
+                }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
+                y: {
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: '#94a3b8', callback: v => `${(v/1000).toFixed(0)}B` }
+                }
+            }
+        }
+    });
+}

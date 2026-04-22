@@ -11,11 +11,24 @@
         .filter-group { display: flex; flex-direction: column; gap: 0.5rem; }
         .filter-group label { font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold; }
         .controls { display: flex; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap; margin-bottom: 2rem; }
-        .dashboard-grid { grid-template-columns: 1fr; } 
+        .dashboard-grid { grid-template-columns: 1fr; }
         @media(min-width: 1024px) { .dashboard-grid { grid-template-columns: 1fr 1fr; } }
         select[multiple] { height: 120px; padding: 0.5rem; }
         select[multiple] option { padding: 0.25rem 0.5rem; border-radius: 0.25rem; }
         select[multiple] option:checked { background-color: var(--primary-color); color: white; }
+        /* Flow chart card */
+        .flow-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+        .flow-card-header h2 { margin-bottom: 0; }
+        .flow-controls { display: flex; align-items: flex-end; gap: 1.5rem; flex-wrap: wrap; }
+        .toggle-container { display: flex; flex-direction: column; gap: 0.5rem; }
+        .toggle-label-text { font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold; }
+        .switch { display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.75rem 0; }
+        .switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+        .slider { position: relative; width: 48px; height: 26px; background: var(--border-color); border-radius: 13px; transition: background 0.3s; flex-shrink: 0; }
+        .slider::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: transform 0.3s; }
+        .switch input:checked + .slider { background: var(--primary-color); }
+        .switch input:checked + .slider::after { transform: translateX(22px); }
+        .switch-label { font-size: 0.95rem; color: var(--text-primary); font-weight: 600; }
     </style>
 </head>
 <body>
@@ -70,6 +83,33 @@
                     <canvas id="barChart"></canvas>
                 </div>
             </div>
+        </div>
+
+        <!-- Capital Flow Comparison -->
+        <div class="card" style="margin-top: 2rem;">
+            <div class="flow-card-header">
+                <h2>Capital Flow Comparison <span id="flowChartLabel" style="font-size:0.9rem; color:#8b5cf6;"></span></h2>
+                <div class="flow-controls">
+                    <div class="filter-group">
+                        <label>Region / Country <span style="font-size:0.7em; text-transform:none; color:var(--primary-color)">(Ctrl+Click: Max 3)</span></label>
+                        <select id="flowCountryFilter" multiple></select>
+                    </div>
+                    <div class="toggle-container">
+                        <span class="toggle-label-text">View Mode</span>
+                        <label class="switch">
+                            <input type="checkbox" id="netToggle">
+                            <span class="slider"></span>
+                            <span class="switch-label">Net View</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="chart-container" style="height:380px;">
+                <canvas id="flowChart"></canvas>
+            </div>
+            <p style="font-size:0.8rem; color:var(--text-secondary); margin-top:1rem; text-align:center;">
+                FDI in Canada shown as positive &bull; Canadian direct investment abroad shown as negative &bull; Net&nbsp;=&nbsp;FDI&nbsp;&minus;&nbsp;CDIA
+            </p>
         </div>
     </main>
 
