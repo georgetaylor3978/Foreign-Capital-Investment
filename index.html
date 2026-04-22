@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capital Flight Analysis</title>
+    <link rel="stylesheet" href="index.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .filter-group { display: flex; flex-direction: column; gap: 0.5rem; }
+        .filter-group label { font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold; }
+        .controls { display: flex; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap; margin-bottom: 2rem; }
+        .dashboard-grid { grid-template-columns: 1fr; } 
+        @media(min-width: 1024px) { .dashboard-grid { grid-template-columns: 1fr 1fr; } }
+        select[multiple] { height: 120px; padding: 0.5rem; }
+        select[multiple] option { padding: 0.25rem 0.5rem; border-radius: 0.25rem; }
+        select[multiple] option:checked { background-color: var(--primary-color); color: white; }
+    </style>
+</head>
+<body>
+    <div id="loader" class="loading hidden">Loading Data...</div>
+
+    <header>
+        <div class="title-container">
+            <h1>Capital Flight Analysis</h1>
+            <p>FDI & CDIA tracking with parent-child component drilling &mdash; Canada-wide, CAD millions</p>
+        </div>
+    </header>
+
+    <main>
+        <div class="controls">
+            <div class="filter-group">
+                <label>Investment Type (Parent)</label>
+                <select id="parentFilter">
+                    <option value="Canadian direct investment abroad - total book value">Canadian Direct Investment Abroad</option>
+                    <option value="Foreign direct investment in Canada - total book value">Foreign Direct Investment in Canada</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Region / Country (Child) <span style="font-size:0.7em; text-transform:none; color:var(--primary-color)">(Ctrl+Click: Max 5)</span></label>
+                <select id="childFilter" multiple>
+                    <!-- Options populated by JS -->
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Trend Metric</label>
+                <select id="metricFilter">
+                    <option value="amount">$ Amount (Millions)</option>
+                    <option value="growth">YoY % Growth</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Year (For Breakdown)</label>
+                <select id="yearFilter">
+                </select>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="card">
+                <h2>Trend Over Time <span id="trendLabel" style="font-size:0.9rem; color:#8b5cf6;"></span></h2>
+                <div class="chart-container">
+                    <canvas id="lineChart"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <h2>Regional Breakdown (Top 10 Countries, Current Year)</h2>
+                <div class="chart-container">
+                    <canvas id="barChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer style="text-align:center; padding: 1.5rem 2rem; border-top: 1px solid var(--border-color); color: var(--text-secondary); font-size: 0.85rem; line-height: 1.8;">
+        <span>Data source: <a href="https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3610000801" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: none;">Statistics Canada, Table 36-10-0008-01</a></span>
+        &nbsp;&bull;&nbsp;
+        <span>Canadian and foreign direct investment, by country or region (annual)</span>
+        &nbsp;&bull;&nbsp;
+        <span>Values in CAD millions &bull; Geography: Canada</span>
+    </footer>
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
