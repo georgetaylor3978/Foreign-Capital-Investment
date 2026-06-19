@@ -13,13 +13,15 @@
         .controls { display: flex; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap; margin-bottom: 2rem; }
         .dashboard-grid { grid-template-columns: 1fr; }
         @media(min-width: 1024px) { .dashboard-grid { grid-template-columns: 1fr 1fr; } }
-        select[multiple] { height: 120px; padding: 0.5rem; }
+        select[multiple] { height: 130px; padding: 0.5rem; }
         select[multiple] option { padding: 0.25rem 0.5rem; border-radius: 0.25rem; }
         select[multiple] option:checked { background-color: var(--primary-color); color: white; }
-        /* Flow chart card */
-        .flow-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+        select[multiple] optgroup { font-size: 0.75rem; color: var(--text-secondary); font-style: normal; padding: 0.25rem 0; }
+        /* Flow chart card — controls below heading, above chart */
+        .flow-card-header { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem; }
         .flow-card-header h2 { margin-bottom: 0; }
-        .flow-controls { display: flex; align-items: flex-end; gap: 1.5rem; flex-wrap: wrap; }
+        .flow-controls { display: flex; align-items: flex-end; gap: 1.5rem; flex-wrap: wrap; padding: 0.75rem 1rem; background: rgba(0,0,0,0.08); border-radius: 0.5rem; border: 1px solid var(--border-color); }
+        body.light .flow-controls { background: rgba(0,0,0,0.04); }
         .toggle-container { display: flex; flex-direction: column; gap: 0.5rem; }
         .toggle-label-text { font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold; }
         .switch { display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.75rem 0; }
@@ -29,6 +31,13 @@
         .switch input:checked + .slider { background: var(--primary-color); }
         .switch input:checked + .slider::after { transform: translateX(22px); }
         .switch-label { font-size: 0.95rem; color: var(--text-primary); font-weight: 600; }
+        /* Region/Country toggle for bar chart */
+        .chart-controls { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+        .chart-toggle-btn { background: var(--surface-color); border: 1px solid var(--border-color); color: var(--text-secondary); padding: 0.4rem 1.1rem; border-radius: 2rem; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
+        .chart-toggle-btn.active { background: var(--primary-color); border-color: var(--primary-color); color: #fff; }
+        .chart-toggle-btn:hover:not(.active) { border-color: var(--primary-color); color: var(--primary-color); }
+        /* Chart source notes */
+        .chart-source { font-size: 0.78rem; color: var(--text-secondary); margin-top: 0.75rem; text-align: center; line-height: 1.6; }
     </style>
 </head>
 <body>
@@ -39,19 +48,23 @@
             <h1>Canadian and Foreign Direct Investment</h1>
             <p>By country or region, annual &bull; Values in CAD millions</p>
         </div>
+        <button id="theme-toggle" onclick="toggleTheme()" aria-label="Toggle light/dark mode">
+            <span id="theme-icon">&#9728;&#65039;</span>
+            <span id="theme-label">Light Mode</span>
+        </button>
     </header>
 
     <main>
         <div class="controls">
             <div class="filter-group">
-                <label>Investment Type (Parent)</label>
+                <label>Investment Type</label>
                 <select id="parentFilter">
                     <option value="Canadian direct investment abroad - total book value">Canadian Direct Investment Abroad</option>
                     <option value="Foreign direct investment in Canada - total book value">Foreign Direct Investment in Canada</option>
                 </select>
             </div>
             <div class="filter-group">
-                <label>Region / Country (Child) <span style="font-size:0.7em; text-transform:none; color:var(--primary-color)">(Ctrl+Click: Max 5)</span></label>
+                <label>Region / Country <span style="font-size:0.7em; text-transform:none; color:var(--primary-color)">(Ctrl+Click: Max 5)</span></label>
                 <select id="childFilter" multiple>
                     <!-- Options populated by JS -->
                 </select>
@@ -59,12 +72,12 @@
             <div class="filter-group">
                 <label>Trend Metric</label>
                 <select id="metricFilter">
-                    <option value="amount">$ Amount (Millions)</option>
+                    <option value="amount">$ Amount (CAD Millions)</option>
                     <option value="growth">YoY % Growth</option>
                 </select>
             </div>
             <div class="filter-group">
-                <label>Year (For Breakdown)</label>
+                <label>Year</label>
                 <select id="yearFilter">
                 </select>
             </div>
@@ -72,16 +85,28 @@
 
         <div class="dashboard-grid">
             <div class="card">
-                <h2>Trend Over Time <span id="trendLabel" style="font-size:0.9rem; color:#8b5cf6;"></span></h2>
+                <h2 id="trendChartTitle">Investment Trend <span id="trendLabel" style="font-size:0.9rem; color:#8b5cf6;"></span></h2>
                 <div class="chart-container">
                     <canvas id="lineChart"></canvas>
                 </div>
+                <p class="chart-source">
+                    Source: <a href="https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3610000801" target="_blank" rel="noopener" style="color:var(--primary-color);text-decoration:none;">Statistics Canada, Table 36-10-0008-01</a>
+                    &bull; Canadian and foreign direct investment, by country or region &bull; Values in CAD millions
+                </p>
             </div>
             <div class="card">
-                <h2>Regional Breakdown (Top 10 Countries, Current Year)</h2>
+                <h2>Top 10 by Selected Year</h2>
+                <div class="chart-controls">
+                    <button class="chart-toggle-btn active" id="btnCountry" onclick="setBreakdownMode('country')">Countries</button>
+                    <button class="chart-toggle-btn" id="btnRegion" onclick="setBreakdownMode('region')">Regions</button>
+                </div>
                 <div class="chart-container">
                     <canvas id="barChart"></canvas>
                 </div>
+                <p class="chart-source">
+                    Source: <a href="https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3610000801" target="_blank" rel="noopener" style="color:var(--primary-color);text-decoration:none;">Statistics Canada, Table 36-10-0008-01</a>
+                    &bull; Canadian and foreign direct investment, by country or region &bull; Values in CAD millions
+                </p>
             </div>
         </div>
 
@@ -109,6 +134,10 @@
             </div>
             <p style="font-size:0.8rem; color:var(--text-secondary); margin-top:1rem; text-align:center;">
                 FDI in Canada shown as positive &bull; Canadian direct investment abroad shown as negative &bull; Net&nbsp;=&nbsp;FDI&nbsp;&minus;&nbsp;CDIA
+            </p>
+            <p class="chart-source">
+                Source: <a href="https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3610000801" target="_blank" rel="noopener" style="color:var(--primary-color);text-decoration:none;">Statistics Canada, Table 36-10-0008-01</a>
+                &bull; Canadian and foreign direct investment, by country or region &bull; Values in CAD millions
             </p>
         </div>
     </main>
